@@ -1,122 +1,53 @@
-buildscript {
-    repositories {
-        maven { url = 'https://maven.parchmentmc.org' }
-        maven { url = 'https://maven.minecraftforge.net' }
-        maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
-        mavenCentral()
+plugins {
+    id "architectury-plugin" version "3.4-SNAPSHOT"
+    id "dev.architectury.loom" version "0.11.0-SNAPSHOT" apply false
+}
+
+architectury {
+    minecraft = rootProject.minecraft_version
+}
+
+subprojects {
+    apply plugin: "dev.architectury.loom"
+
+    loom {
+        silentMojangMappingsLicense()
     }
+
     dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
-        classpath 'org.parchmentmc:librarian:1.+'
-        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
-    }
-}
-apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'org.parchmentmc.librarian.forgegradle'
-apply plugin: 'eclipse'
-apply plugin: 'maven-publish'
-apply plugin: 'org.spongepowered.mixin'
-
-version = '1.0'
-group = 'samebutdifferent.ecologics'
-archivesBaseName = 'ecologics'
-
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-
-println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
-minecraft {
-    mappings channel: 'parchment', version: '1.18.1-2022.03.06-1.18.2'
-
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-
-    runs {
-        client {
-            workingDirectory project.file('run')
-            arg "-mixin.config=ecologics.mixins.json"
-
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                ecologics {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        server {
-            workingDirectory project.file('run')
-
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                ecologics {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        data {
-            workingDirectory project.file('run')
-
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-
-            args '--mod', 'ecologics', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-
-            mods {
-                ecologics {
-                    source sourceSets.main
-                }
-            }
-        }
+        minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+        // The following line declares the mojmap mappings, you may use other mappings as well
+        mappings "${rootProject.mappings_version}"
+        // The following line declares the yarn mappings you may select this one as well.
+        // mappings "net.fabricmc:yarn:1.18.2+build.2:v2"
     }
 }
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
+allprojects {
+    apply plugin: "java"
+    apply plugin: "architectury-plugin"
+    apply plugin: "maven-publish"
 
-mixin {
-    add sourceSets.main, "ecologics.refmap.json"
-}
+    archivesBaseName = rootProject.archives_base_name
+    version = rootProject.mod_version
+    group = rootProject.maven_group
 
-repositories {
-    maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
-}
-
-dependencies {
-    minecraft 'net.minecraftforge:forge:1.18.2-40.0.40'
-
-    implementation fg.deobf('software.bernie.geckolib:geckolib-1.18-forge:3.0.13')
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-}
-
-jar {
-    manifest {
-        attributes([
-                "Specification-Title"     : "Ecologics",
-                "Specification-Vendor"    : "SameButDifferent",
-                "Specification-Version"   : "1", // We are version 1 of ourselves
-                "Implementation-Title"    : project.name,
-                "Implementation-Version"  : project.jar.archiveVersion,
-                "Implementation-Vendor"   : "SameButDifferent",
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                "MixinConfigs": "ecologics.mixins.json"
-        ])
-    }
-}
-
-jar.finalizedBy('reobfJar')
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifact jar
-        }
-    }
     repositories {
-        maven {
-            url "file://${project.projectDir}/mcmodsrepo"
-        }
+        // Add repositories to retrieve artifacts from in here.
+        // You should only use this when depending on other mods because
+        // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+        // See https://docs.gradle.org/current/userguide/declaring_repositories.html
+        // for more information about repositories.
+
+        maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+        options.release = 17
+    }
+
+    java {
+        withSourcesJar()
     }
 }
